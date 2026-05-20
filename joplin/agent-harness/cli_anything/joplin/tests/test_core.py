@@ -180,6 +180,17 @@ def test_session_save_with_path(tmp_path):
     assert os.path.exists(saved)
 
 
+def test_session_save_creates_missing_parent_directories(tmp_path):
+    """Regression: saving to a not-yet-created nested path must not fail at
+    the lock open before the data write runs."""
+    sess = Session()
+    nested = tmp_path / "deep" / "subdir" / "newly_created.json"
+    sess.set_project(project_mod.create_project(name="nested"), str(nested))
+    saved = sess.save_session()
+    assert os.path.exists(saved)
+    assert nested.parent.is_dir()
+
+
 def test_session_set_project_clears_undo_redo():
     sess = Session()
     sess.set_project(project_mod.create_project(name="a"))
@@ -295,6 +306,47 @@ def test_backend_run_command_node_warning_passes(monkeypatch):
     cfg = joplin_backend.BackendConfig(binary="joplin", profile=None)
     result = joplin_backend.run_joplin_command(["ls"], cfg)
     assert result["returncode"] == 1
+    # Stripped stdout/stderr should be empty so JSON callers don't see warning lines.
+    assert result["stdout"] == ""
+    assert result["stderr"] == ""
+
+
+def test_backend_run_command_real_error_alongside_warning_raises(monkeypatch):
+    """Regression: a real Joplin error must surface even when stderr also
+    contains the benign DEP0040 punycode deprecation warning."""
+
+    class Proc:
+        returncode = 1
+        stdout = ""
+        stderr = (
+            "(node:1234) [DEP0040] DeprecationWarning: The `punycode` module is deprecated.\n"
+            "Error: Cannot find \"missing-note\"."
+        )
+
+    monkeypatch.setattr(joplin_backend, "find_joplin", lambda _: "joplin")
+    monkeypatch.setattr(joplin_backend.subprocess, "run", lambda *a, **k: Proc())
+    cfg = joplin_backend.BackendConfig(binary="joplin", profile=None)
+    with pytest.raises(RuntimeError) as excinfo:
+        joplin_backend.run_joplin_command(["cat", "missing-note"], cfg)
+    assert "Cannot find" in str(excinfo.value)
+    # The benign warning line should be stripped from the surfaced error text.
+    assert "DEP0040" not in str(excinfo.value)
+
+
+def test_backend_run_command_strips_warning_from_stdout(monkeypatch):
+    class Proc:
+        returncode = 0
+        stdout = (
+            "(node:7) [DEP0040] DeprecationWarning: The `punycode` module is deprecated.\n"
+            "[{\"title\":\"NoteA\"}]"
+        )
+        stderr = ""
+
+    monkeypatch.setattr(joplin_backend, "find_joplin", lambda _: "joplin")
+    monkeypatch.setattr(joplin_backend.subprocess, "run", lambda *a, **k: Proc())
+    cfg = joplin_backend.BackendConfig(binary="joplin", profile=None)
+    result = joplin_backend.run_joplin_command(["ls", "--format", "json"], cfg)
+    assert result["stdout"] == "[{\"title\":\"NoteA\"}]"
 
 
 def test_backend_run_command_timeout(monkeypatch):
@@ -563,6 +615,70 @@ def test_sync_import_config_and_backend_args(monkeypatch):
     assert captured[4] == ["version"]
     assert captured[5] == ["server", "start", "--exit-early", "--quiet"]
     assert captured[6] == ["e2ee", "decrypt-file", "encrypted.bin", "--output", "out"]
+
+
+# ---------------------------------------------------------------------------
+# Backend config resolution precedence
+# ---------------------------------------------------------------------------
+
+
+def test_backend_config_without_project_uses_defaults():
+    joplin_cli._session = None
+    cfg = joplin_cli._backend_config(None, None)
+    assert cfg.binary == "joplin"
+    assert cfg.profile is None
+
+
+def test_backend_config_without_project_respects_cli_overrides():
+    joplin_cli._session = None
+    cfg = joplin_cli._backend_config("/custom/joplin", "/tmp/prof")
+    assert cfg.binary == "/custom/joplin"
+    assert cfg.profile == "/tmp/prof"
+
+
+def test_backend_config_uses_project_backend_when_cli_omitted():
+    """Regression: a project that persisted a custom backend binary and
+    profile must keep using them when the user does not pass --binary /
+    --profile explicitly."""
+    joplin_cli._session = None
+    sess = joplin_cli.get_session()
+    proj = project_mod.create_project(
+        name="custom",
+        backend_binary="/opt/joplin-custom",
+        backend_profile="/var/joplin-profile",
+    )
+    sess.set_project(proj)
+
+    cfg = joplin_cli._backend_config(None, None)
+    assert cfg.binary == "/opt/joplin-custom"
+    assert cfg.profile == "/var/joplin-profile"
+
+
+def test_backend_config_cli_overrides_beat_project_values():
+    joplin_cli._session = None
+    sess = joplin_cli.get_session()
+    proj = project_mod.create_project(
+        name="overridable",
+        backend_binary="/opt/joplin-custom",
+        backend_profile="/var/joplin-profile",
+    )
+    sess.set_project(proj)
+
+    cfg = joplin_cli._backend_config("/usr/local/bin/joplin", "/tmp/other")
+    assert cfg.binary == "/usr/local/bin/joplin"
+    assert cfg.profile == "/tmp/other"
+
+
+def test_backend_config_falls_back_to_default_binary_when_project_missing_backend():
+    joplin_cli._session = None
+    sess = joplin_cli.get_session()
+    proj = project_mod.create_project(name="empty")
+    proj["backend"] = {}
+    sess.set_project(proj)
+
+    cfg = joplin_cli._backend_config(None, None)
+    assert cfg.binary == "joplin"
+    assert cfg.profile is None
 
 
 # ---------------------------------------------------------------------------

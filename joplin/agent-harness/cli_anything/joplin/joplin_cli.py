@@ -88,19 +88,37 @@ def handle_error(func):
     return wrapper
 
 
-def _backend_config(binary: str, profile: Optional[str]) -> BackendConfig:
+def _backend_config(binary: Optional[str], profile: Optional[str]) -> BackendConfig:
+    """Resolve the backend config for the current command.
+
+    Resolution precedence:
+      1. Explicit CLI flags (`--binary`, `--profile`) when the user passed them.
+      2. Values persisted in the loaded harness project's `backend` section.
+      3. Built-in defaults (`joplin` binary, no profile).
+
+    The CLI options use sentinel `None` defaults so we can distinguish "user
+    omitted the flag" from "user explicitly passed --binary joplin"; passing
+    the default would otherwise silently override the project's saved binary.
+    """
     sess = get_session()
     if sess.has_project():
         proj = sess.get_project()
-        backend = proj.get("backend", {})
-        return BackendConfig(binary=binary or backend.get("binary", "joplin"), profile=profile if profile is not None else backend.get("profile"))
-    return BackendConfig(binary=binary, profile=profile)
+        backend = proj.get("backend", {}) or {}
+        resolved_binary = binary if binary is not None else backend.get("binary") or "joplin"
+        resolved_profile = profile if profile is not None else backend.get("profile")
+        return BackendConfig(binary=resolved_binary, profile=resolved_profile)
+    return BackendConfig(binary=binary or "joplin", profile=profile)
 
 
 @click.group(invoke_without_command=True)
 @click.option("--json", "use_json", is_flag=True, help="Output as JSON")
 @click.option("--project", "project_path", type=str, default=None, help="Harness project JSON path")
-@click.option("--binary", type=str, default="joplin", help="Joplin CLI binary name/path")
+@click.option(
+    "--binary",
+    type=str,
+    default=None,
+    help="Joplin CLI binary name/path (defaults to the project's saved binary or 'joplin')",
+)
 @click.option("--profile", type=str, default=None, help="Joplin profile path")
 @click.option("--dry-run", "dry_run", is_flag=True, default=False, help="Run command without saving harness project")
 @click.pass_context
@@ -150,7 +168,11 @@ def project():
 @click.pass_context
 @handle_error
 def project_new(ctx, name, output_path):
-    proj = project_mod.create_project(name=name, backend_binary=ctx.obj["binary"], backend_profile=ctx.obj["profile"])
+    proj = project_mod.create_project(
+        name=name,
+        backend_binary=ctx.obj["binary"] or "joplin",
+        backend_profile=ctx.obj["profile"],
+    )
     sess = get_session()
     sess.set_project(proj, output_path)
     if output_path:

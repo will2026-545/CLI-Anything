@@ -78,6 +78,14 @@ class Session:
         }
 
     def _locked_save_json(self, path: str, data: dict) -> None:
+        # Ensure the parent directory exists before touching the lock or tmp
+        # files. `project save nested/sub/file.json` (or any first save to a
+        # not-yet-created directory) would otherwise fail with FileNotFoundError
+        # at the lock open, before the data write even gets a chance to run.
+        parent = os.path.dirname(os.path.abspath(path))
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+
         lock_path = f"{path}.lock"
         lock_fd = os.open(lock_path, os.O_CREAT | os.O_RDWR)
         try:

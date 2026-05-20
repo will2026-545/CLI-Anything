@@ -20,9 +20,38 @@ def find_joplin(binary: str = "joplin") -> str:
     )
 
 
-def _is_benign_node_warning(stderr: str, stdout: str = "") -> bool:
-    text = f"{stderr}\n{stdout}".strip().lower()
-    return bool(text) and "dep0040" in text and "punycode" in text
+_BENIGN_NODE_WARNING_MARKERS = (
+    ("dep0040", "punycode"),
+    ("dep0169", "url.parse"),
+)
+
+
+def _line_is_benign_node_warning(line: str) -> bool:
+    """Return True for Node.js deprecation warnings that Joplin emits on stderr.
+
+    These warnings are emitted on every invocation by Node 20+ when Joplin's
+    dependencies still use the deprecated builtin modules. They never indicate
+    a real Joplin failure, but they are noisy on stderr.
+    """
+    lowered = line.lower()
+    if "deprecationwarning" not in lowered and "experimentalwarning" not in lowered:
+        return False
+    return any(all(marker in lowered for marker in markers) for markers in _BENIGN_NODE_WARNING_MARKERS)
+
+
+def _strip_benign_node_warnings(text: str) -> str:
+    """Drop benign Node warning lines while preserving any real diagnostic text."""
+    if not text:
+        return ""
+    kept = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if _line_is_benign_node_warning(line):
+            continue
+        kept.append(raw_line)
+    return "\n".join(kept).strip()
 
 
 def run_joplin_command(args: list[str], config: BackendConfig, timeout: int = 120) -> dict:
@@ -43,8 +72,11 @@ def run_joplin_command(args: list[str], config: BackendConfig, timeout: int = 12
     except subprocess.TimeoutExpired as e:
         raise RuntimeError(f"Joplin command timed out after {timeout}s") from e
 
-    stdout = (proc.stdout or "").strip()
-    stderr = (proc.stderr or "").strip()
+    stdout_raw = proc.stdout or ""
+    stderr_raw = proc.stderr or ""
+    stdout = _strip_benign_node_warnings(stdout_raw)
+    stderr = _strip_benign_node_warnings(stderr_raw)
+
     result = {
         "command": cmd,
         "returncode": proc.returncode,
@@ -52,8 +84,12 @@ def run_joplin_command(args: list[str], config: BackendConfig, timeout: int = 12
         "stderr": stderr,
     }
 
-    if proc.returncode != 0 and not _is_benign_node_warning(stderr, stdout):
-        raise RuntimeError(stderr or stdout or "Joplin command failed")
+    if proc.returncode != 0:
+        # After stripping known-benign Node warnings, anything left on stderr or
+        # stdout is a real Joplin error and must surface as a failure. We only
+        # treat the exit as success when there is no remaining diagnostic text.
+        if stderr or stdout:
+            raise RuntimeError(stderr or stdout)
 
     return result
 
