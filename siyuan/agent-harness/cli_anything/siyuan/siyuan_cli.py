@@ -155,6 +155,7 @@ def repl(ctx: click.Context):
             continue
 
         if user_input in ("quit", "exit", "q"):
+            ctx.session.flush()
             break
 
         if user_input == "help":

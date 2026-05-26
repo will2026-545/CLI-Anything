@@ -35,7 +35,10 @@ def load_config(config_path: str | None = None) -> SiYuanConfig:
         config_file = Path.home() / ".siyuan-cli.json"
 
     if config_file.is_file():
-        data = json.loads(config_file.read_text(encoding="utf-8"))
+        try:
+            data = json.loads(config_file.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            data = {}
         return SiYuanConfig(
             host=data.get("host", "127.0.0.1"),
             port=data.get("port", 6806),
