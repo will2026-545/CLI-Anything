@@ -121,6 +121,46 @@ def _q(arg: str) -> str:
     return shlex.quote(arg)
 
 
+def _assert_single_line(field: str, value: str) -> None:
+    """Reject newline characters in a user-supplied string.
+
+    DOMShell's ``domshell_execute`` splits its ``command`` argument on
+    newlines *before* shell-style quote parsing, so a literal ``\\n`` or
+    ``\\r`` inside an otherwise-quoted argument escapes the quoting and
+    starts a fresh DOMShell command. Guard at the wrapper layer for any
+    value that gets interpolated into a multi-line command string.
+    """
+    if "\n" in value or "\r" in value:
+        raise ValueError(
+            f"{field}: newline characters are not allowed (would be interpreted "
+            f"as DOMShell command separators). Got: {value!r}"
+        )
+
+
+def _is_error(result: Any) -> bool:
+    """Best-effort check that a ``domshell_execute`` result represents an error.
+
+    Inspects ``isError`` if the MCP SDK populated it; otherwise scans the
+    concatenated text content for a leading "error". Robust to both the
+    raw ``CallToolResult`` object and the dict shapes used in unit tests.
+    """
+    if hasattr(result, "isError") and result.isError:
+        return True
+    if isinstance(result, dict):
+        if result.get("isError"):
+            return True
+        if "error" in result:
+            return True
+    text = ""
+    content = getattr(result, "content", None)
+    if content:
+        for c in content:
+            piece = getattr(c, "text", None)
+            if piece:
+                text += piece
+    return text.strip().lower().startswith("error")
+
+
 async def _call_execute(command: str, use_daemon: bool = False) -> Any:
     """Run a DOMShell command via the single `domshell_execute` MCP tool.
 
@@ -294,6 +334,7 @@ def cat(path: str, use_daemon: bool = False) -> dict:
 
 def grep(
     pattern: str,
+    *,
     path: str = "",
     prev: str = "/",
     use_daemon: bool = False,
@@ -301,9 +342,16 @@ def grep(
     """Search for pattern in the accessibility tree.
 
     When ``path`` is provided and is not ``/``, the search is rooted at that
-    path: ``cd`` into it, ``grep``, then ``cd`` back to ``prev`` — sent as one
-    multi-line ``domshell_execute`` call so all three steps share shell state
-    and complete in a single MCP round-trip.
+    path: ``cd`` into it, ``grep``, then ``cd`` back to ``prev``. The three
+    steps run as separate ``domshell_execute`` calls with the restore in a
+    ``finally`` block, so the cwd is restored even if ``grep`` errors
+    mid-flight. (A single multi-line call would be one round-trip instead of
+    three, but it relies on DOMShell's currently-undocumented continue-past-
+    error behavior — see PR review.)
+
+    ``path``, ``prev``, and ``use_daemon`` are keyword-only to prevent silent
+    breakage of callers written against the pre-migration positional
+    signature ``grep(pattern, use_daemon)``.
 
     Args:
         pattern: Text pattern to search for
@@ -323,10 +371,17 @@ def grep(
         {"matches": ["/main/button[0]"]}
     """
     if path and path != "/":
-        command = f"cd {_q(path)}\ngrep {_q(pattern)}\ncd {_q(prev)}"
-    else:
-        command = f"grep {_q(pattern)}"
-    return asyncio.run(_call_execute(command, use_daemon))
+        _assert_single_line("path", path)
+        _assert_single_line("prev", prev)
+        _assert_single_line("pattern", pattern)
+        cd_result = asyncio.run(_call_execute(f"cd {_q(path)}", use_daemon))
+        if _is_error(cd_result):
+            return cd_result
+        try:
+            return asyncio.run(_call_execute(f"grep {_q(pattern)}", use_daemon))
+        finally:
+            asyncio.run(_call_execute(f"cd {_q(prev)}", use_daemon))
+    return asyncio.run(_call_execute(f"grep {_q(pattern)}", use_daemon))
 
 
 def click(path: str, use_daemon: bool = False) -> dict:
@@ -413,7 +468,15 @@ def type_text(path: str, text: str, use_daemon: bool = False) -> dict:
 
     Returns:
         Dict with action result
+
+    Raises:
+        ValueError: If ``path`` or ``text`` contains a newline. DOMShell's
+            ``domshell_execute`` treats newlines as command separators, so
+            an embedded newline would inject additional commands. Split
+            into multiple ``type_text`` calls for multi-line input.
     """
+    _assert_single_line("path", path)
+    _assert_single_line("text", text)
     command = f"focus {_q(path)}\ntype {_q(text)}"
     return asyncio.run(_call_execute(command, use_daemon))
 
