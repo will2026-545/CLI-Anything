@@ -25,7 +25,7 @@ def _resolve_cli(name: str) -> list[str]:
         return [path]
     if force:
         raise RuntimeError(f"{name} not found in PATH. Install with: pip install -e .")
-    module = name.replace("cli-anything-", "cli_anything.") + "." + name.split("-")[-1] + "_cli"
+    module = name.replace("cli-anything-", "cli_anything.")  # e.g. cli_anything.siyuan (has __main__.py)
     print(f"[_resolve_cli] Falling back to: {sys.executable} -m {module}")
     return [sys.executable, "-m", module]
 
