@@ -23,6 +23,20 @@ from cli_anything.siyuan.core.session import SessionManager
 from cli_anything.siyuan.utils.siyuan_backend import check_siyuan_running
 
 
+def _read_stdin() -> str:
+    """Read stdin as raw bytes and decode as UTF-8 (with BOM handling).
+
+    PowerShell pipes text using the console code page (e.g. GBK on Chinese
+    Windows), which mangles CJK characters before Python sees them.  Reading
+    raw bytes then decoding as UTF-8-sig is the most robust approach.
+    """
+    raw = sys.stdin.buffer.read()
+    try:
+        return raw.decode('utf-8-sig')
+    except UnicodeDecodeError:
+        return raw.decode('utf-8-sig', errors='replace')
+
+
 # ── Global state ───────────────────────────────────────────────────────
 
 _config: SiYuanConfig | None = None
@@ -75,9 +89,10 @@ class _CatchErrors(click.Group):
 @click.pass_context
 def cli(ctx: click.Context, json_output: bool, host: str, port: int,
         token: str, config_path: str):
-    # Force UTF-8 output to handle emoji and CJK characters on Windows
-    if hasattr(sys.stdout, 'reconfigure'):
-        sys.stdout.reconfigure(encoding='utf-8')
+    # Force UTF-8 output to handle CJK characters on Windows
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            stream.reconfigure(encoding='utf-8')
 
     """CLI for SiYuan (思源笔记) — interact with your knowledge base.
 
@@ -465,7 +480,7 @@ def doc_create(ctx: SiYuanContext, notebook_id: str, path: str, md: str):
       echo "## Title" | sy doc create nb1 /test --md -
     """
     if not md or md == "-":
-        md = click.get_text_stream("stdin").read()
+        md = _read_stdin()
     doc_id = ctx.client.create_doc_with_md(notebook_id, path, md)
     if ctx.json_output:
         click.echo(json.dumps({"id": doc_id}, ensure_ascii=False))
@@ -557,7 +572,7 @@ def block_insert(ctx: SiYuanContext, data: str | None, previous: str, parent: st
     if not parent and not previous and not next_:
         raise click.UsageError("An anchor is required: --parent, --previous, or --next")
     if not data or data == "-":
-        data = click.get_text_stream("stdin").read()
+        data = _read_stdin()
     result = ctx.client.insert_block(data_type, data, parent_id=parent, previous_id=previous, next_id=next_)
     if ctx.json_output:
         click.echo(json.dumps(result, ensure_ascii=False))
@@ -573,7 +588,7 @@ def block_insert(ctx: SiYuanContext, data: str | None, previous: str, parent: st
 def block_update(ctx: SiYuanContext, block_id: str, data: str | None, data_type: str):
     """Update a block's content. Data reads from stdin when '-' or omitted."""
     if not data or data == "-":
-        data = click.get_text_stream("stdin").read()
+        data = _read_stdin()
     ctx.client.update_block(data_type, data, block_id)
     click.echo(f"Updated block: {block_id}")
 
