@@ -1246,6 +1246,25 @@
           "url": "https://github.com/octo-patch"
         }
       ]
+    },
+    {
+      "name": "arcgis-pro",
+      "display_name": "ArcGIS Pro",
+      "version": "0.1.0",
+      "description": "Agent-native CLI for ArcGIS Pro (ArcPy): professional cartography (layouts + map series), geoprocessing, and feature query/edit — plus a live-Pro MCP bridge that drives the open session.",
+      "requires": "ArcGIS Pro (licensed) with ArcPy; .NET 8 SDK for the optional live bridge",
+      "homepage": "https://www.esri.com/en-us/arcgis/products/arcgis-pro/overview",
+      "source_url": "https://github.com/Jasper0122/CLI-Anything-Arcgis-Pro",
+      "install_cmd": "pip install git+https://github.com/Jasper0122/CLI-Anything-Arcgis-Pro.git",
+      "entry_point": "cli-anything-arcgis-pro",
+      "skill_md": "https://github.com/Jasper0122/CLI-Anything-Arcgis-Pro/blob/main/SKILL.md",
+      "category": "scientific",
+      "contributors": [
+        {
+          "name": "Jasper0122",
+          "url": "https://github.com/Jasper0122"
+        }
+      ]
     }
   ]
 }
