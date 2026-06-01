@@ -499,15 +499,23 @@ async def _call_execute(
     global _daemon_session, _daemon_read, _daemon_write
 
     arguments: dict[str, Any] = {"command": command}
-    # Reuse the previously-captured DOMShell lane so this call lands in the
-    # same Chrome tab-group as the prior commands in this session. Without
-    # this, every fresh stdio ClientSession would be assigned a brand-new
-    # lane and `page open` / `fs ls` etc. would run in disjoint browser
-    # state. The very first call leaves group_id unset so DOMShell
-    # auto-assigns; _capture_lane stores that id on the session for the
-    # next call.
+    # Lane handling for non-daemon mode: every fresh stdio ClientSession
+    # would otherwise be assigned a brand-new lane, scattering `page open`
+    # / `fs ls` / etc. across disjoint browser state. So we name the lane
+    # explicitly on every call:
+    #   • subsequent calls   → group_id=<previously captured lane id>
+    #   • very first call    → group_id="new" — DOMShell creates a fresh
+    #     isolated lane and returns its id in the [lane: ...] marker,
+    #     which `_capture_lane` stores on the session for next time.
+    # DOMShell 2.0.2 deprecated omitting `group_id` entirely (emits a
+    # [DEPRECATION] warning in the reply; hard error in 3.0.0). Passing
+    # "new" on the first call matches our actual intent — we want our own
+    # private lane, not the shared one — and silences the deprecation
+    # warning across every REPL session.
     if session is not None and getattr(session, "domshell_lane_id", None):
         arguments["group_id"] = session.domshell_lane_id
+    else:
+        arguments["group_id"] = "new"
 
     if use_daemon and _daemon_session is not None:
         # Use persistent daemon connection

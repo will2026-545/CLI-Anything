@@ -1106,8 +1106,18 @@ def test_call_execute_includes_group_id_when_lane_is_set():
     assert arguments == {"command": "ls /", "group_id": "lane-7"}
 
 
-def test_call_execute_omits_group_id_when_lane_is_none():
-    """First-call shape: no stored lane → no group_id; DOMShell auto-assigns."""
+def test_call_execute_passes_group_id_new_when_lane_is_none():
+    """First-call shape: no stored lane → ``group_id="new"``; DOMShell
+    creates an isolated lane and returns the id, which we capture for
+    next time.
+
+    Migration note (PR #308 follow-up to DOMShell 2.0.2): we used to omit
+    ``group_id`` on the first call entirely, which DOMShell 2.x mapped
+    to a fresh lane silently. 2.0.2 deprecated that path — omitting now
+    emits a [DEPRECATION] warning on every reply (will be a hard error
+    in 3.0.0). Passing ``"new"`` makes the intent explicit and silences
+    the warning.
+    """
     sess = Session()  # lane is None
     fake_tool = AsyncMock(return_value=_make_result("✓\n[lane: brand-new]"))
 
@@ -1128,7 +1138,7 @@ def test_call_execute_omits_group_id_when_lane_is_none():
         _aio.run(backend._call_execute("ls /", session=sess))
 
     arguments = fake_tool.call_args.args[1]
-    assert "group_id" not in arguments
+    assert arguments.get("group_id") == "new"
     # The auto-assigned lane gets captured for next time.
     assert sess.domshell_lane_id == "brand-new"
 
