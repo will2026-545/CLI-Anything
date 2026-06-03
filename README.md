@@ -20,6 +20,7 @@ CLI-Anything: Bridging the Gap Between AI Agents and the World's Software</stron
   <a href="https://hkuds.github.io/CLI-Anything/"><img src="https://img.shields.io/badge/CLI_Hub-Browse_%26_Install-ff69b4?style=for-the-badge" alt="CLI Hub"></a>
   <a href="#-demonstrations"><img src="https://img.shields.io/badge/Demos-18_Apps-green?style=for-the-badge" alt="Demos"></a>
   <a href="#-test-results"><img src="https://img.shields.io/badge/Tests-2%2C461_Passing-brightgreen?style=for-the-badge" alt="Tests"></a>
+  <a href="https://arxiv.org/abs/2606.03854"><img src="https://img.shields.io/badge/Tech_Report-arXiv%3A2606.03854-b31b1b?style=for-the-badge" alt="Tech Report"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-yellow?style=for-the-badge" alt="License"></a>
 </p>
 
@@ -1608,6 +1609,24 @@ If CLI-Anything helps make your software Agent-native, give us a star! ⭐
     </picture>
   </a>
 </div>
+
+---
+
+## 📚 Citation
+
+If you find CLI-Anything useful, please cite our technical report:
+
+```bibtex
+@misc{yang2026clianythingagentnativecomputeruse,
+      title={CLI-Anything: Towards Agent-Native Computer Use}, 
+      author={Yuhao Yang and Tianyu Fan and Chao Huang},
+      year={2026},
+      eprint={2606.03854},
+      archivePrefix={arXiv},
+      primaryClass={cs.HC},
+      url={https://arxiv.org/abs/2606.03854}, 
+}
+```
 
 ---
 

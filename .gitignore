@@ -13,6 +13,7 @@
 # Step 2: Allow .gitignore, README, assets, and marketplace
 !.gitignore
 !/README.md
+!/CITATION.cff
 !/CONTRIBUTING.md
 !/SECURITY.md
 !/FIX_NOTES.md

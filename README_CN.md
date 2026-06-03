@@ -11,6 +11,7 @@ CLI-Anything：连接 AI Agent 与全世界软件的桥梁</strong><br>
   <a href="#-快速上手"><img src="https://img.shields.io/badge/快速上手-5_分钟-blue?style=for-the-badge" alt="Quick Start"></a>
   <a href="#-实测展示"><img src="https://img.shields.io/badge/Demo-13_款软件-green?style=for-the-badge" alt="Demos"></a>
   <a href="#-测试结果"><img src="https://img.shields.io/badge/测试-1%2C741_通过-brightgreen?style=for-the-badge" alt="Tests"></a>
+  <a href="https://arxiv.org/abs/2606.03854"><img src="https://img.shields.io/badge/Tech_Report-arXiv%3A2606.03854-b31b1b?style=for-the-badge" alt="Tech Report"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-yellow?style=for-the-badge" alt="License"></a>
 </p>
 
@@ -982,6 +983,24 @@ CLI_ANYTHING_FORCE_INSTALLED=1 python3 -m pytest cli_anything/<软件名>/tests/
   </a>
 </div>
 -->
+
+---
+
+## 📚 引用
+
+如果 CLI-Anything 对你有帮助，请引用我们的技术报告：
+
+```bibtex
+@misc{yang2026clianythingagentnativecomputeruse,
+      title={CLI-Anything: Towards Agent-Native Computer Use}, 
+      author={Yuhao Yang and Tianyu Fan and Chao Huang},
+      year={2026},
+      eprint={2606.03854},
+      archivePrefix={arXiv},
+      primaryClass={cs.HC},
+      url={https://arxiv.org/abs/2606.03854}, 
+}
+```
 
 ---
 
