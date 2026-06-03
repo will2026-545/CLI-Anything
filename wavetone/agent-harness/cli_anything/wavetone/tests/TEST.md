@@ -2,7 +2,7 @@
 
 ## Test Inventory Plan
 
-- `test_core.py`: 9 unit tests for project manifests, audio probing, session logs,
+- `test_core.py`: 10 unit tests for project manifests, audio probing, session logs,
   and backend discovery.
 - `test_full_e2e.py`: 5 E2E tests covering CLI subprocess workflows and real
   WaveTone launch smoke coverage.
@@ -15,6 +15,7 @@
 - Add labels in sorted time order.
 - Set tempo and analysis options.
 - Probe a generated WAV file with the Python stdlib.
+- Fall back to stat metadata for malformed WAV files.
 - Append and reload session events.
 - Resolve `WAVETONE_EXE` from the environment.
 - Preserve inherited project and JSON context for REPL-style nested CLI
@@ -70,7 +71,7 @@ python -m pytest cli_anything\wavetone\tests\ -v -s
 Result:
 
 ```text
-collected 14 items
+collected 15 items
 
 cli_anything/wavetone/tests/test_core.py::test_create_project_manifest PASSED
 cli_anything/wavetone/tests/test_core.py::test_rejects_unsupported_audio PASSED
@@ -78,6 +79,7 @@ cli_anything/wavetone/tests/test_core.py::test_save_load_project_roundtrip PASSE
 cli_anything/wavetone/tests/test_core.py::test_labels_are_sorted PASSED
 cli_anything/wavetone/tests/test_core.py::test_update_analysis_settings PASSED
 cli_anything/wavetone/tests/test_core.py::test_probe_wav_metadata PASSED
+cli_anything/wavetone/tests/test_core.py::test_probe_malformed_wav_falls_back_to_stat PASSED
 cli_anything/wavetone/tests/test_core.py::test_session_event_log PASSED
 cli_anything/wavetone/tests/test_core.py::test_find_wavetone_from_env PASSED
 cli_anything/wavetone/tests/test_core.py::test_cli_preserves_inherited_project_and_json_context PASSED
@@ -87,14 +89,14 @@ cli_anything/wavetone/tests/test_full_e2e.py::TestCLISubprocess::test_formats_js
 cli_anything/wavetone/tests/test_full_e2e.py::TestRealWaveToneBackend::test_doctor_real_backend PASSED
 cli_anything/wavetone/tests/test_full_e2e.py::TestRealWaveToneBackend::test_launch_real_backend_with_wav PASSED
 
-14 passed in 3.46s
+15 passed in 3.38s
 ```
 
 ## Coverage Notes
 
 - Unit tests cover manifest creation, validation, persistence, labels, tempo,
-  analysis settings, audio probing, session logs, backend discovery, and
-  inherited CLI project and JSON context.
+  analysis settings, audio probing, malformed WAV fallback, session logs,
+  backend discovery, and inherited CLI project and JSON context.
 - CLI subprocess tests resolve and use the installed `cli-anything-wavetone`
   entry point.
 - Real backend coverage launches `C:\Users\Hp\Desktop\wavetone2.6.1\wavetone.exe`

@@ -97,6 +97,18 @@ def test_probe_wav_metadata(tmp_path: Path) -> None:
     assert info["size_bytes"] > 0
 
 
+def test_probe_malformed_wav_falls_back_to_stat(tmp_path: Path) -> None:
+    wav = tmp_path / "broken.wav"
+    wav.write_bytes(b"")
+
+    info = probe_audio(wav)
+
+    assert info["probe_method"] == "stat"
+    assert info["format"] == "wav"
+    assert info["duration_seconds"] is None
+    assert info["size_bytes"] == 0
+
+
 def test_session_event_log(tmp_path: Path) -> None:
     session_path = tmp_path / "session.json"
     append_event(session_path, "created", {"project": "demo"})

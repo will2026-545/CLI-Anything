@@ -78,7 +78,7 @@ def probe_audio(audio_path: str | Path) -> dict[str, Any]:
     if path.suffix.lower() in {".wav", ".wave"}:
         try:
             return _probe_wav_stdlib(path)
-        except wave.Error:
+        except (wave.Error, EOFError):
             pass
     try:
         return _probe_ffprobe(path)
