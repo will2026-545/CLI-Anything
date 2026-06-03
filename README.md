@@ -872,6 +872,22 @@ An agent uses the VideoCaptioner CLI to automatically generate and overlay style
 
 *Contributed by [@WEIFENG2333](https://github.com/WEIFENG2333)*
 
+### ArcGIS Pro &mdash; Live Agent Cartography via the MCP Bridge
+
+> **Harness:** [`arcgis-pro`](https://github.com/Jasper0122/CLI-Anything-Arcgis-Pro) (registered in [`public_registry.json`](public_registry.json)) | **Mode:** live-Pro MCP bridge | **Artifact:** Agent-driven map navigation in a running ArcGIS Pro session
+
+An agent drives a **live, open ArcGIS Pro session** through an MCP bridge — reading the project, zooming the map to feature layers, running geoprocessing, and exporting layouts — while each step executes inside Pro as you watch. ArcGIS Pro is Esri's commercial GIS desktop (Windows-only, licensed), so this wraps its official **ArcPy / ArcGIS Pro SDK** rather than being generated from source — the ArcGIS Pro counterpart to the QGIS harness.
+
+<p align="center">
+  <img src="assets/demos/arcgis-pro-live-bridge-demo.gif" alt="ArcGIS Pro live-bridge demo: an agent driving a running ArcGIS Pro session over MCP" width="860" />
+</p>
+
+<p align="center">
+  <sub>README GIF generated from the full local demo video with a high-quality ffmpeg palette workflow.</sub>
+</p>
+
+*Contributed by [@Jasper0122](https://github.com/Jasper0122)*
+
 *More CLI demos coming soon.*
 
 ---
