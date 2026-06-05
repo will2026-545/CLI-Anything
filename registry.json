@@ -110,7 +110,7 @@
       "source_url": null,
       "install_cmd": "pip install git+https://github.com/HKUDS/CLI-Anything.git#subdirectory=wavetone/agent-harness",
       "entry_point": "cli-anything-wavetone",
-      "skill_md": "wavetone/agent-harness/cli_anything/wavetone/skills/SKILL.md",
+      "skill_md": "skills/cli-anything-wavetone/SKILL.md",
       "category": "audio",
       "contributors": [
         {
