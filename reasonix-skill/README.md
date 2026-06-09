@@ -24,6 +24,15 @@ cd CLI-Anything\reasonix-skill
 
 Both scripts copy the skill to Reasonix's global skill directory at `~/.reasonix/skills/cli-anything`.
 
+## Configuration Note
+
+A full CLI-Anything build (architecture analysis, 10+ file generation, installation, and multiple test runs) typically requires 25–40 tool-call rounds. Reasonix's subagent step budget is derived from the `agent.max_steps` setting in `reasonix.toml`:
+
+- The default `max_steps = 0` means unlimited, which is recommended for this workflow.
+- If you have set `max_steps` to a finite value, the subagent receives half that budget (minimum 5), which may cause a build to be truncated before completion.
+
+To ensure builds complete successfully, set `agent.max_steps = 0` in your `reasonix.toml`, or use a sufficiently high value such as 64 or more.
+
 ## Usage
 
 After installation, invoke the skill in any Reasonix session:

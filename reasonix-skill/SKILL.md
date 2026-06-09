@@ -51,6 +51,15 @@ Reasonix agents build harnesses by combining these built-in tools:
 
 **Phase 7 (Packaging)** — Use `write_file` for setup.py, `bash` for `pip install -e .` and `which cli-anything-<software>` verification.
 
+## Step Budget
+
+A full harness build typically requires 25–40 tool-call rounds (architecture inspection, 10+ file writes, installation, and multiple test runs). When invoked via `run_skill`, the subagent inherits a step budget derived from the parent agent's `agent.max_steps` setting in `reasonix.toml`:
+
+- If `max_steps = 0` (the default, meaning unlimited), the subagent also runs with no step cap — this is the recommended configuration for the CLI-Anything workflow.
+- If `max_steps` is set to a finite value, the subagent receives half that budget (minimum 5), which may truncate a complex build before completion.
+
+Users who have configured a finite `max_steps` should ensure it is set to 0 or a sufficiently high value (e.g., 64 or more) before running a CLI-Anything build, so the subagent has enough rounds to complete all seven phases.
+
 ## Modes
 
 ### Build
